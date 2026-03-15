@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Modular</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="loginContainer" class="login-container">
+        <div class="login-box">
+            <!-- Login view -->
+            <div id="loginView">
+                <h1>Entrar</h1>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="loginPassword" placeholder="Digite sua senha" autocomplete="current-password">
+                </div>
+                <button class="btn" onclick="login()">Entrar</button>
+
+                <div class="auth-divider"><span>ou</span></div>
+                <button class="btn btn-google" onclick="loginWithGoogle()">Entrar com Google</button>
+
+                <button class="btn btn-secondary" onclick="showSignup()">Criar conta</button>
+            </div>
+
+            <!-- Signup view -->
+            <div id="signupView" style="display:none;">
+                <h1>Criar conta</h1>
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" id="signupName" placeholder="Seu nome" autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupEmail" placeholder="seu@email.com" autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="signupPassword" placeholder="Crie uma senha" autocomplete="new-password">
+                </div>
+                <button class="btn" onclick="signup()">Criar conta</button>
+
+                <div class="auth-divider"><span>ou</span></div>
+                <button class="btn btn-google" onclick="loginWithGoogle()">Continuar com Google</button>
+
+                <button class="link-btn" onclick="showLogin()">Voltar para o login</button>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="appContainer" class="app-container">
+        <div class="sidebar" id="sidebar">
+            <div id="sidebarButtons"></div>
+            <button class="btn-logout" onclick="logout()">Sair</button>
+        </div>
+
+        <div class="content">
+            <div class="topbar" role="banner">
+                <div class="topbar-left">
+                    <div class="topbar-title">CRM Modular</div>
+                    <div class="topbar-subtitle" id="topbarCompany">Empresa</div>
+                </div>
+                <div class="topbar-center">
+                    <div class="topbar-search">
+                        <input id="globalSearch" type="search" placeholder="Buscar no CRM..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-user">
+                        <div class="topbar-user-label">Usuário</div>
+                        <div class="topbar-user-value" id="topbarUser">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main" role="main">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab active">
+                <div class="db-shell">
+                    <div class="db-header">
+                        <div class="db-titlewrap">
+                            <div class="db-title">Dashboard de Gestão</div>
+                            <div class="db-subtitle" id="dashboardCompanyName"></div>
+                        </div>
+                        <div class="db-brandcard">
+                            <div class="db-brandlogo">
+                                <img id="dashboardLogo" alt="Logo da empresa" style="display:none;">
+                                <div id="dashboardLogoFallback">Logo</div>
+                            </div>
+                            <div class="db-brandmeta">
+                                <div class="db-brandname" id="dashboardCompanyNameCompact">Empresa</div>
+                                <div class="db-brandhint">Painel interativo</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="db-filtersbar">
+                        <div class="db-filterblock">
+                            <div class="db-filterlabel">Painel</div>
+                            <div class="db-filterrow">
+                                <select id="dashboardSelect" onchange="selectDashboardFromUi()"></select>
+                                <button class="db-btn" type="button" onclick="createDashboard()">Novo</button>
+                                <button class="db-btn" type="button" onclick="duplicateActiveDashboard()">Duplicar</button>
+                                <button class="db-btn db-danger" type="button" onclick="deleteActiveDashboard()">Excluir</button>
+                            </div>
+                        </div>
+                        <div class="db-filterblock">
+                            <div class="db-filterlabel">Período</div>
+                            <div class="db-filterrow">
+                                <input type="date" id="dbDateFrom" onchange="updateDashboardFiltersFromUi()">
+                                <input type="date" id="dbDateTo" onchange="updateDashboardFiltersFromUi()">
+                            </div>
+                        </div>
+                        <div class="db-filterblock">
+                            <div class="db-filterlabel">Status do orçamento</div>
+                            <div class="db-filterrow">
+                                <select id="dbBudgetStatus" onchange="updateDashboardFiltersFromUi()">
+                                    <option value="">Todos</option>
+                                    <option>Rascunho</option>
+                                    <option>Enviado</option>
+                                    <option>Aprovado</option>
+                                    <option>Rejeitado</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="db-filterblock db-filterblock-wide">
+                            <div class="db-filterlabel">Adicionar widget</div>
+                            <div class="db-filterrow">
+                                <select id="dbWidgetTemplate">
+                                    <option value="metric_total_revenue">Contador: Receita total</option>
+                                    <option value="metric_avg_ticket">Contador: Ticket medio</option>
+                                    <option value="metric_conversion_rate">Contador: Conversão de orçamentos</option>
+                                    <option value="bar_revenue_by_month">Grafico: Vendas por mes</option>
+                                    <option value="line_new_clients_by_month">Grafico: Novos clientes</option>
+                                    <option value="pie_budgets_by_status">Gráfico: Orçamentos por status</option>
+                                    <option value="bar_revenue_by_product">Grafico: Receita por produto</option>
+                                    <option value="table_recent_budgets">Tabela: Orçamentos recentes</option>
+                                    <option value="ranking_top_products">Ranking: Top produtos</option>
+                                    <option value="funnel_budget_status">Funil: Orçamentos</option>
+                                </select>
+                                <button class="db-btn" type="button" onclick="addWidgetFromTemplate()">Adicionar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="db-kpis">
+                        <div class="db-kpi">
+                            <div class="db-kpi-label">Total de Leads</div>
+                            <div class="db-kpi-value" id="totalLeads">0</div>
+                        </div>
+                        <div class="db-kpi">
+                            <div class="db-kpi-label">Total de Produtos</div>
+                            <div class="db-kpi-value" id="totalProducts">0</div>
+                        </div>
+                        <div class="db-kpi">
+                            <div class="db-kpi-label">Total de Orçamentos</div>
+                            <div class="db-kpi-value" id="totalBudgets">0</div>
+                        </div>
+                        <div class="db-kpi">
+                            <div class="db-kpi-label">Orçamentos Aprovados</div>
+                            <div class="db-kpi-value" id="approvedBudgets">0</div>
+                        </div>
+                    </div>
+
+                    <div id="dashboardGrid" class="db-grid" aria-label="Dashboard widgets"></div>
+
+                    <div id="dashboardModalBackdrop" class="db-modal-backdrop" style="display:none;" onclick="closeDashboardModal()"></div>
+                    <div id="dashboardModal" class="db-modal" style="display:none;" role="dialog" aria-modal="true">
+                        <div class="db-modal-header">
+                            <h3 id="dashboardModalTitle">Detalhes</h3>
+                            <button class="db-btn" type="button" onclick="closeDashboardModal()">Fechar</button>
+                        </div>
+                        <div id="dashboardModalBody" class="db-modal-body"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Company Profile Tab -->
+            <div id="company" class="tab">
+                <h2>Perfil da Empresa</h2>
+                <div class="form-group">
+                    <label>Nome da Empresa</label>
+                    <input type="text" id="companyName" placeholder="Digite o nome da empresa">
+                </div>
+                <div class="form-group">
+                    <label>Logo URL</label>
+                    <input type="text" id="companyLogo" placeholder="Cole a URL do logo">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="companyDescription" placeholder="Digite uma descrição"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Segmento</label>
+                    <input type="text" id="companySegment" placeholder="Ex.: Saúde, Varejo, Serviços">
+                </div>
+                <div class="form-group">
+                    <label>Contato</label>
+                    <input type="text" id="companyContact" placeholder="Ex.: (85) 99999-9999, contato@empresa.com">
+                </div>
+                <div class="form-group">
+                    <label>Endereço</label>
+                    <textarea id="companyAddress" placeholder="Digite o endereço"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Moeda</label>
+                    <input type="text" id="companyCurrency" placeholder="Ex.: BRL" value="BRL" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Idioma</label>
+                    <input type="text" id="companyLanguage" placeholder="Ex.: pt-BR" value="pt-BR" readonly>
+                </div>
+                <button class="btn-add" onclick="saveCompanyProfile()">Salvar Perfil</button>
+            </div>
+
+            <!-- Clients Tab -->
+            <!-- <div id="clients" class="tab">
+                <h2>Gestão de Clientes</h2>
+                <div class="search-bar">
+                    <input type="text" id="clientSearch" placeholder="Buscar clientes..." onkeyup="filterClients()">
+                    <select id="clientCategoryFilter" onchange="filterClients()" style="margin-left: 10px;">
+                        <option>Todas as categorias</option>
+                    </select>
+                </div>
+                <button class="btn-add" onclick="openClientForm()">Adicionar Cliente</button>
+                
+                <div id="clientForm" class="panel" style="display:none;">
+                    <div class="form-group" id="clientNameGroup">
+                        <label>Nome do Cliente</label>
+                        <input type="text" id="clientName" placeholder="Digite o nome">
+                    </div>
+                    <div class="form-group" id="clientCompanyGroup">
+                        <label>Empresa</label>
+                        <input type="text" id="clientCompany" placeholder="Digite a empresa">
+                    </div>
+                    <div class="form-group" id="clientEmailGroup">
+                        <label>Email</label>
+                        <input type="email" id="clientEmail" placeholder="Digite o email">
+                    </div>
+                    <div class="form-group" id="clientPhoneGroup">
+                        <label>Telefone</label>
+                        <input type="text" id="clientPhone" placeholder="Digite o telefone">
+                    </div>
+                    <div class="form-group" id="clientAddressGroup">
+                        <label>Endereço</label>
+                        <textarea id="clientAddress" placeholder="Digite o endereço"></textarea>
+                    </div>
+                    <div class="form-group" id="clientNotesGroup">
+                        <label>Observações</label>
+                        <textarea id="clientNotes" placeholder="Digite observações"></textarea>
+                    </div>
+                    <div class="form-group" id="clientCategoryGroup">
+                        <label>Categoria</label>
+                        <select id="clientCategory">
+                            <option>Selecione a categoria</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="clientTagsGroup">
+                        <label>Tags</label>
+                        <input type="text" id="clientTags" placeholder="Tags (separadas por vírgula)">
+                    </div>
+                    <div id="clientCustomFields"></div>
+                    <button class="btn" onclick="saveClient()">Salvar Cliente</button>
+                    <button class="btn btn-secondary" onclick="closeClientForm()">Cancelar</button>
+                </div>
+
+                <table class="table" id="clientsTable">
+                    <thead><tr id="clientsHeadRow"></tr></thead>
+                    <tbody id="clientsBody"></tbody>
+                </table>
+            </div> -->
+
+            <!-- Leads Tab (base única) -->
+            <div id="leads" class="tab">
+                <h2>Leads</h2>
+                <div class="search-bar">
+                    <input type="text" id="leadSearch" placeholder="Buscar por nome, telefone, origem, campanha..." onkeyup="filterLeads()">
+                    <select id="leadStatusFilter" onchange="filterLeads()" style="margin-left: 10px;">
+                        <option>Todos</option>
+                        <option>Novo</option>
+                        <option>Em contato</option>
+                        <option>Qualificado</option>
+                        <option>Proposta</option>
+                        <option>Fechado</option>
+                        <option>Perdido</option>
+                        <option>Convertido</option>
+                    </select>
+                    <select id="leadSourceFilter" onchange="filterLeads()" style="margin-left: 10px;">
+                        <option value="">Todas as origens</option>
+                    </select>
+                    <input type="text" id="leadCampaignFilter" placeholder="Campanha (filtro)" onkeyup="filterLeads()" style="max-width: 220px;">
+                </div>
+                <div class="leads-actions">
+                    <button class="btn-add" onclick="openLeadForm()">Adicionar Lead</button>
+                    <button class="action-btn" type="button" onclick="toggleLeadsView()">Alternar: Tabela/Funil</button>
+                    <button class="action-btn" type="button" onclick="openWhatsAppImport()">Importar do WhatsApp</button>
+                </div>
+
+                <div id="whatsAppImportPanel" class="panel" style="display:none;">
+                    <h3 style="margin-top:0;">Importar lead do WhatsApp</h3>
+                    <div class="lead-import-grid">
+                        <div class="form-group">
+                            <label>Link ou telefone</label>
+                            <input type="text" id="waImportInput" placeholder="Ex.: https://wa.me/5599... ou 55 99 9....">
+                        </div>
+                        <div class="form-group">
+                            <label>Nome (opcional)</label>
+                            <input type="text" id="waImportName" placeholder="Nome do lead">
+                        </div>
+                        <div class="form-group">
+                            <label>Campanha (opcional)</label>
+                            <input type="text" id="waImportCampaign" placeholder="Ex.: Promo Março">
+                        </div>
+                        <div class="form-group">
+                            <label>Conteúdo (opcional)</label>
+                            <input type="text" id="waImportContent" placeholder="Ex.: Criativo A">
+                        </div>
+                    </div>
+                    <button class="btn" type="button" onclick="importLeadFromWhatsApp()">Registrar lead</button>
+                    <button class="btn btn-secondary" type="button" onclick="closeWhatsAppImport()">Cancelar</button>
+                </div>
+
+                <div id="leadForm" class="panel" style="display:none;">
+                    <div class="lead-form-grid">
+                        <div class="form-group" id="leadNameGroup">
+                            <label>Nome do lead</label>
+                            <input type="text" id="leadName" placeholder="Digite o nome">
+                        </div>
+                        <div class="form-group" id="leadPhoneGroup">
+                            <label>Telefone</label>
+                            <input type="text" id="leadPhone" placeholder="(DDD) 9xxxx-xxxx">
+                        </div>
+                        <div class="form-group" id="leadSourceGroup">
+                            <label>Origem (canal)</label>
+                            <input type="text" id="leadSource" placeholder="Ex.: WhatsApp, Instagram, Site">
+                        </div>
+                        <div class="form-group" id="leadCampaignGroup">
+                            <label>Campanha</label>
+                            <input type="text" id="leadCampaign" placeholder="Ex.: Promo MarÃ§o">
+                        </div>
+                        <div class="form-group" id="leadContentGroup">
+                            <label>ConteÃºdo</label>
+                            <input type="text" id="leadContent" placeholder="Ex.: Reels #12, Criativo A">
+                        </div>
+                        <div class="form-group" id="leadInterestGroup">
+                            <label>Interesse</label>
+                            <input type="text" id="leadInterest" placeholder="Produto/serviÃ§o de interesse">
+                        </div>
+                        <div class="form-group" id="leadStatusGroup">
+                            <label>Status de atendimento</label>
+                            <select id="leadStatus">
+                                <option>Novo</option>
+                                <option>Em contato</option>
+                                <option>Qualificado</option>
+                                <option>Proposta</option>
+                                <option>Fechado</option>
+                                <option>Perdido</option>
+                                <option>Convertido</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="leadConversationStatusGroup">
+                            <label>Status da conversa</label>
+                            <select id="leadConversationStatus">
+                                <option value="">(nao definido)</option>
+                                <option>Sem contato</option>
+                                <option>Aguardando resposta</option>
+                                <option>Em conversa</option>
+                                <option>Respondido</option>
+                                <option>Encerrado</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="leadClassificationGroup">
+                            <label>ClassificaÃ§Ã£o do lead</label>
+                            <select id="leadClassification">
+                                <option value="">(nao definido)</option>
+                                <option>Frio</option>
+                                <option>Morno</option>
+                                <option>Quente</option>
+                                <option>NÃ£o qualificado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="leadNotesGroup">
+                        <label>ObservaÃ§Ãµes</label>
+                        <textarea id="leadNotes" placeholder="ObservaÃ§Ãµes gerais" rows="4"></textarea>
+                    </div>
+
+                    <div class="lead-tools">
+                        <div class="form-group">
+                            <label>Modelo de mensagem</label>
+                            <select id="leadMessageTemplateSelect"></select>
+                        </div>
+                        <button class="action-btn" type="button" onclick="leadOpenWhatsAppWithTemplate()">Abrir WhatsApp</button>
+                        <button class="action-btn" type="button" onclick="leadRegisterTemplateSend()">Registrar envio no histÃ³rico</button>
+                    </div>
+
+                    <div class="lead-history">
+                        <h3 style="margin: 0 0 10px;">HistÃ³rico do lead</h3>
+                        <div id="leadHistoryList"></div>
+                        <div class="form-group" style="margin-top: 10px;">
+                            <label>Adicionar ao histÃ³rico</label>
+                            <textarea id="leadHistoryNote" rows="3" placeholder="Anote uma atualizaÃ§Ã£o..."></textarea>
+                        </div>
+                        <button class="action-btn" type="button" onclick="addLeadHistoryNote()">Registrar nota</button>
+                    </div>
+
+                    <div class="lead-form-actions">
+                        <button class="btn" onclick="saveLead()">Salvar Lead</button>
+                        <button class="btn btn-secondary" onclick="closeLeadForm()">Cancelar</button>
+                    </div>
+                </div>
+
+                <div id="leadsTableWrap">
+                <table class="table" id="leadsTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Origem</th>
+                            <th>Campanha</th>
+                            <th>Status</th>
+                            <th>Conversa</th>
+                            <th>ClassificaÃ§Ã£o</th>
+                            <th>Data</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leadsBody"></tbody>
+                </table>
+                </div>
+
+                <div id="leadsFunnelWrap" style="display:none;">
+                    <div id="leadsFunnelBoard"></div>
+                </div>
+            </div>
+
+            <!-- Products Tab -->
+            <div id="products" class="tab">
+                <h2>Gestão de Produtos</h2>
+                <div class="search-bar">
+                    <input type="text" id="productSearch" placeholder="Buscar produtos..." onkeyup="filterProducts()">
+                    <select id="productCategoryFilter" onchange="filterProducts()" style="margin-left: 10px;">
+                        <option>Todas as categorias</option>
+                    </select>
+                    <select id="productStatusFilter" onchange="filterProducts()" style="margin-left: 10px;">
+                        <option>Todos os status</option>
+                        <option>Ativo</option>
+                        <option>Inativo</option>
+                    </select>
+                </div>
+                <button class="btn-add" onclick="openProductForm()">Adicionar Produto</button>
+
+                <div id="productForm" class="panel" style="display:none;">
+                    <div class="form-group" id="productNameGroup">
+                        <label>Nome do Produto</label>
+                        <input type="text" id="productName" placeholder="Digite o nome">
+                    </div>
+                    <div class="form-group" id="productCodeGroup">
+                        <label>Código</label>
+                        <input type="text" id="productCode" placeholder="Digite o código">
+                    </div>
+                    <div class="form-group" id="productCategoryGroup">
+                        <label>Categoria</label>
+                        <select id="productCategory">
+                            <option>Selecione a categoria</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="productDescriptionGroup">
+                        <label>Descrição</label>
+                        <textarea id="productDescription" placeholder="Digite a descrição" rows="3"></textarea>
+                    </div>
+                    <div class="form-group" id="productPriceGroup">
+                        <label>Preço</label>
+                        <input type="number" id="productPrice" placeholder="Digite o preço" step="0.01">
+                    </div>
+                    <div class="form-group" id="productCostGroup">
+                        <label>Custo</label>
+                        <input type="number" id="productCost" placeholder="Digite o custo" step="0.01">
+                    </div>
+                    <div class="form-group" id="productUnitGroup">
+                        <label>Unidade</label>
+                        <input type="text" id="productUnit" placeholder="Ex.: UN, KG">
+                    </div>
+                    <div class="form-group" id="productStatusGroup">
+                        <label>Status</label>
+                        <select id="productStatus">
+                            <option>Ativo</option>
+                            <option>Inativo</option>
+                        </select>
+                    </div>
+                    <div id="productCustomFields"></div>
+                    <button class="btn" onclick="saveProduct()">Salvar Produto</button>
+                    <button class="btn btn-secondary" onclick="closeProductForm()">Cancelar</button>
+                </div>
+
+                <table class="table" id="productsTable">
+                    <thead><tr id="productsHeadRow"></tr></thead>
+                    <tbody id="productsBody"></tbody>
+                </table>
+            </div>
+
+            <!-- Budgets Tab -->
+            <div id="budgets" class="tab">
+                <h2>Gestão de Orçamentos</h2>
+                <div class="search-bar">
+                    <select id="budgetStatusFilter" onchange="filterBudgets()">
+                        <option>Todos os status</option>
+                        <option>Rascunho</option>
+                        <option>Enviado</option>
+                        <option>Aprovado</option>
+                        <option>Rejeitado</option>
+                    </select>
+                </div>
+                <button class="btn-add" onclick="openBudgetForm()">Criar Orçamento</button>
+                
+                <div id="budgetForm" class="panel" style="display:none;">
+                    <div class="form-group">
+                        <label>Selecionar Lead</label>
+                        <select id="budgetClient"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="budgetDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Adicionar Produto</label>
+                        <select id="budgetProductSelect"></select>
+                        <input type="number" id="budgetProductQty" placeholder="Qtd" min="1" value="1" style="width: 80px; margin-left: 10px;">
+                        <button type="button" class="btn btn-secondary" onclick="addProductToBudget()" style="margin-left: 10px;">Adicionar</button>
+                    </div>
+                    <div id="budgetSelectedProducts" style="margin-bottom: 15px;"></div>
+                    <div class="form-group">
+                        <label>Desconto (%)</label>
+                        <input type="number" id="budgetDiscount" placeholder="Digite o desconto" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Impostos (%)</label>
+                        <input type="number" id="budgetTaxes" placeholder="Digite os impostos" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="budgetStatus">
+                            <option>Rascunho</option>
+                            <option>Enviado</option>
+                            <option>Aprovado</option>
+                            <option>Rejeitado</option>
+                        </select>
+                    </div>
+                    <div style="background: white; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                        <p><strong>Subtotal:</strong> <span id="budgetSubtotal">0.00</span></p>
+                        <p><strong>Impostos:</strong> <span id="budgetTaxesAmount">0.00</span></p>
+                        <p><strong>Desconto:</strong> -<span id="budgetDiscountAmount">0.00</span></p>
+                        <p><strong>Total:</strong> <span id="budgetTotal">0.00</span></p>
+                    </div>
+                    <button class="btn" onclick="saveBudget()">Salvar Orçamento</button>
+                    <button class="btn" onclick="duplicateBudget()" style="background: #17a2b8;">Duplicar</button>
+                    <button class="btn" onclick="exportBudgetPDF()" style="background: #28a745;">Exportar PDF</button>
+                    <button class="btn btn-secondary" onclick="closeBudgetForm()">Cancelar</button>
+                </div>
+
+                <table class="table" id="budgetsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Data</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="budgetsBody"></tbody>
+                </table>
+            </div>
+
+            <!-- WhatsApp Tab -->
+            <div id="whatsapp" class="tab">
+                <h2>Campanhas WhatsApp</h2>
+
+                <div class="panel">
+                    <h3 style="margin-top:0;">Publico e filtros</h3>
+                    <div class="wa-toolbar">
+                        <div class="form-group">
+                            <label>Buscar</label>
+                            <input type="text" id="waSearch" placeholder="Buscar por nome, telefone, origem, campanha...">
+                        </div>
+                        <div class="form-group" id="waLeadStatusGroup">
+                            <label>Status</label>
+                            <select id="waLeadStatusFilter">
+                                <option>Todos</option>
+                                <option>Novo</option>
+                                <option>Em contato</option>
+                                <option>Qualificado</option>
+                                <option>Proposta</option>
+                                <option>Fechado</option>
+                                <option>Perdido</option>
+                                <option>Convertido</option>
+                            </select>
+                        </div>
+                        <div class="form-group wa-ddi">
+                            <label>DDI padrao</label>
+                            <input type="text" id="waDefaultCountry" value="55" placeholder="Ex.: 55">
+                        </div>
+                        <div class="form-group wa-inlinecheck">
+                            <label class="wa-checklabel">
+                                <input type="checkbox" id="waOnlyValidPhones" checked>
+                                Apenas com telefone valido
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3 style="margin-top:0;">Mensagem</h3>
+                    <div class="wa-template-select">
+                        <div class="form-group" style="margin-bottom: 0; min-width: 260px;">
+                            <label>Modelo</label>
+                            <select id="waMessageTemplateSelect"></select>
+                        </div>
+                        <button class="action-btn" type="button" onclick="waApplySelectedTemplate()">Aplicar</button>
+                    </div>
+                    <div class="wa-image-row">
+                        <div class="form-group" style="margin-bottom:0; min-width: 280px;">
+                            <label>Imagem (URL)</label>
+                            <input type="text" id="waImageUrl" placeholder="https://... (link público da imagem)">
+                        </div>
+                        <label class="wa-checklabel wa-image-check">
+                            <input type="checkbox" id="waIncludeImageInText" checked>
+                            Incluir link na mensagem
+                        </label>
+                        <button class="action-btn" type="button" onclick="waOpenImageUrl()">Abrir imagem</button>
+                        <button class="action-btn delete-btn" type="button" onclick="waClearImageUrl()">Limpar</button>
+                    </div>
+                    <div class="wa-image-previewwrap" id="waImagePreviewWrap" style="display:none;">
+                        <img id="waImagePreview" alt="Preview da imagem">
+                    </div>
+                    <div class="wa-template-actions">
+                        <button class="action-btn" type="button" onclick="waInsertToken('{nome}')">{nome}</button>
+                        <button class="action-btn" type="button" onclick="waInsertToken('{empresa}')">{empresa}</button>
+                        <button class="action-btn" type="button" onclick="waInsertToken('{email}')">{email}</button>
+                        <button class="action-btn" type="button" onclick="waInsertToken('{telefone}')">{telefone}</button>
+                        <button class="action-btn" type="button" onclick="waInsertToken('{categoria}')">{categoria}</button>
+                        <button class="action-btn" type="button" onclick="waInsertToken('{status}')">{status}</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Template</label>
+                        <textarea id="waMessageTemplate" rows="6" placeholder="Digite a mensagem..."></textarea>
+                    </div>
+                    <div class="wa-hint">Dica: use os tokens acima para personalizar. Observação: o WhatsApp não anexa mídia automaticamente via link `wa.me`; aqui o recurso adiciona o link da imagem ao texto.</div>
+                </div>
+
+                <div class="panel">
+                    <h3 style="margin-top:0;">Contatos</h3>
+                    <div class="wa-actions">
+                        <button class="action-btn" type="button" onclick="waSelectAllVisible(true)">Selecionar visiveis</button>
+                        <button class="action-btn" type="button" onclick="waSelectAllVisible(false)">Limpar selecao</button>
+                        <div class="wa-counter" id="waSelectedCount">0 selecionados</div>
+                        <button class="btn-add" type="button" onclick="waGenerateQueue()">Gerar fila</button>
+                    </div>
+                    <div class="wa-tablewrap">
+                        <table class="table" id="waContactsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 48px;">Sel.</th>
+                                    <th>Nome</th>
+                                    <th>Origem/Campanha</th>
+                                    <th>Telefone</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="waContactsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3 style="margin-top:0;">Fila de envio</h3>
+                    <div class="wa-actions">
+                        <button class="action-btn" type="button" onclick="waOpenNext()">Abrir proximo</button>
+                        <button class="action-btn" type="button" onclick="waCopyCurrentMessage()">Copiar mensagem atual</button>
+                        <div class="wa-counter" id="waQueueStatus">Fila vazia</div>
+                    </div>
+                    <div id="waQueueList"></div>
+                </div>
+            </div>
+
+            <!-- Campaigns Dashboard Tab -->
+            <div id="campaigns" class="tab">
+                <h2>Dashboard de Campanhas</h2>
+
+                <div class="panel">
+                    <div class="campaigns-filters">
+                        <div class="form-group">
+                            <label>De</label>
+                            <input type="date" id="campDateFrom">
+                        </div>
+                        <div class="form-group">
+                            <label>Ate</label>
+                            <input type="date" id="campDateTo">
+                        </div>
+                        <button class="action-btn" type="button" onclick="renderCampaignsDashboard()">Atualizar</button>
+                    </div>
+                    <div class="wa-hint">MÃ©tricas derivadas da base de Leads (origem, campanha, conteÃºdo, status e conversa).</div>
+                </div>
+
+                <div id="campKpis" class="campaigns-kpis"></div>
+
+                <div class="campaigns-grid">
+                    <div class="panel">
+                        <h3 style="margin-top:0;">Leads por canal</h3>
+                        <canvas id="campBarByChannel" height="120"></canvas>
+                    </div>
+                    <div class="panel">
+                        <h3 style="margin-top:0;">Leads por perÃ­odo</h3>
+                        <canvas id="campLineByPeriod" height="120"></canvas>
+                    </div>
+                    <div class="panel">
+                        <h3 style="margin-top:0;">Funil social</h3>
+                        <canvas id="campFunnel" height="120"></canvas>
+                    </div>
+                    <div class="panel">
+                        <h3 style="margin-top:0;">Ranking de campanhas</h3>
+                        <div id="campRankCampaigns"></div>
+                    </div>
+                    <div class="panel">
+                        <h3 style="margin-top:0;">Ranking de conteÃºdos</h3>
+                        <div id="campRankContents"></div>
+                    </div>
+                    <div class="panel">
+                        <h3 style="margin-top:0;">Custos por campanha</h3>
+                        <div id="campCosts"></div>
+                        <button class="action-btn" type="button" onclick="saveCampaignCosts()">Salvar custos</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings" class="tab">
+                <h2>Configurações da Empresa</h2>
+
+                <h3>Módulos</h3>
+                <div id="modulesSettings"></div>
+                <button class="btn-add" onclick="saveModulesSettings()">Salvar Módulos</button>
+
+                <h3>Configuracoes de Leads</h3>
+                <div id="leadsTabSettings"></div>
+                <button class="btn-add" onclick="saveEntityTabSettings('leads')">Salvar Configuracoes de Leads</button>
+
+                <h3>Configuracoes de Produtos</h3>
+                <div id="productsTabSettings"></div>
+                <button class="btn-add" onclick="saveEntityTabSettings('products')">Salvar Configuracoes de Produtos</button>
+
+                <h3>Captação de Leads (Sites)</h3>
+                <div class="form-group">
+                    <label>URL do seu CRM</label>
+                    <input type="text" id="leadCaptureCrmUrl" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Snippet para colocar no seu site (Hostinger, HostGator, WordPress, etc.)</label>
+                    <textarea id="leadCaptureSnippet" rows="8" readonly></textarea>
+                </div>
+                <button class="btn-add" onclick="copyLeadCaptureSnippet()">Copiar Snippet</button>
+
+                <h3>Modelos de Mensagens</h3>
+                <div id="messageTemplatesList"></div>
+                <button class="btn-add" onclick="openMessageTemplateForm()">Adicionar Modelo</button>
+                <div id="messageTemplateForm" class="panel" style="display:none;">
+                    <div class="form-group">
+                        <label>Nome do Modelo</label>
+                        <input type="text" id="messageTemplateName" placeholder="Ex.: Boas-vindas">
+                    </div>
+                    <div class="form-group">
+                        <label>Texto</label>
+                        <textarea id="messageTemplateText" rows="5" placeholder="Use tokens como {nome} e {telefone}."></textarea>
+                    </div>
+                    <button class="btn" type="button" onclick="saveMessageTemplate()">Salvar Modelo</button>
+                    <button class="btn btn-secondary" type="button" onclick="closeMessageTemplateForm()">Cancelar</button>
+                </div>
+
+                <h3>Campos Personalizados</h3>
+                <div id="customFieldsList"></div>
+                <button class="btn-add" onclick="openCustomFieldForm()">Adicionar Campo</button>
+                <div id="customFieldForm" class="panel" style="display:none;">
+                    <div class="form-group">
+                        <label>Nome do Campo</label>
+                        <input type="text" id="customFieldName" placeholder="Digite o nome do campo">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo do Campo</label>
+                        <select id="customFieldType">
+                            <option>text</option>
+                            <option>number</option>
+                            <option>date</option>
+                            <option>select</option>
+                            <option>multiple</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Entidade</label>
+                        <select id="customFieldEntity">
+                            <option>leads</option>
+                            <option>products</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="customFieldOptionsGroup" style="display:none;">
+                        <label>Opções (separadas por vírgula)</label>
+                        <input type="text" id="customFieldOptions" placeholder="Opcao1, Opcao2">
+                    </div>
+                    <button class="btn" onclick="saveCustomField()">Salvar Campo</button>
+                    <button class="btn btn-secondary" onclick="closeCustomFieldForm()">Cancelar</button>
+                </div>
+                <h3>Categorias</h3>
+                <div id="categoriesList"></div>
+                <button class="btn-add" onclick="openCategoryForm()">Adicionar Categoria</button>
+                <div id="categoryForm" class="panel" style="display:none;">
+                    <div class="form-group">
+                        <label>Nome da Categoria</label>
+                        <input type="text" id="categoryName" placeholder="Digite o nome da categoria">
+                    </div>
+                    <div class="form-group">
+                        <label>Entidade</label>
+                        <select id="categoryEntity">
+                            <option>leads</option>
+                            <option>products</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="saveCategory()">Salvar Categoria</button>
+                    <button class="btn btn-secondary" onclick="closeCategoryForm()">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
