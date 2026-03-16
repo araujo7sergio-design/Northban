@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Chrome",
+            "request": "launch",
+            "type": "chrome",
+            "url": "http://localhost:8080",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "Open index.html in Edge",
+            "type": "pwa-msedge",
+            "request": "launch",
+            "runtimeExecutable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+            "runtimeArgs": ["--new-window", "${workspaceFolder}\\index.html"],
+            "cwd": "${workspaceFolder}",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "name": "Open index.html in Chrome fallback",
+            "type": "pwa-chrome",
+            "request": "launch",
+            "runtimeExecutable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+            "runtimeArgs": ["--new-window", "${workspaceFolder}\\index.html"],
+            "cwd": "${workspaceFolder}",
+            "webRoot": "${workspaceFolder}"
+        }
+    ]
+}

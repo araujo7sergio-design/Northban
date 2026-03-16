@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste CRM</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="result" style="padding: 20px; font-family: Arial;">
+        <h1>Teste de Carregamento do CRM</h1>
+        <p>Se você vê esta página, o HTML está funcionando.</p>
+        <details>
+            <summary>Clique para verificar carregamento de scripts</summary>
+            <pre id="output"></pre>
+        </details>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        output.textContent = 'Carregando...\n\n';
+        
+        // Test script loading
+        function logScript(name, status) {
+            output.textContent += `✓ ${name}: ${status}\n`;
+        }
+        
+        logScript('HTML', 'Carregado');
+        logScript('CSS', 'Carregado');
+    </script>
+    <script src="data.js" onload="logScript('data.js', 'OK')" onerror="logScript('data.js', 'ERRO')"></script>
+    <script src="app.js" onload="logScript('app.js', 'OK')" onerror="logScript('app.js', 'ERRO')"></script>
+</body>
+</html>

@@ -1351,6 +1351,20 @@ function enforceSecureContext() {
     return true;
 }
 
+function initAppEventListeners() {
+    const customFieldTypeEl = document.getElementById('customFieldType');
+    if (customFieldTypeEl) {
+        customFieldTypeEl.addEventListener('change', toggleCustomFieldOptions);
+    }
+
+    document.addEventListener('change', function(e) {
+        if (!e.target || !e.target.id) return;
+        if (['budgetDiscount', 'budgetTaxes'].includes(e.target.id)) {
+            calculateBudgetTotal();
+        }
+    });
+}
+
 function initSecurity() {
     enforceSecureContext();
 
@@ -1373,6 +1387,7 @@ function initSecurity() {
 window.addEventListener('load', () => {
     try {
         initSecurity();
+        initAppEventListeners();
         console.log('[CRM] Security initialized. Session:', getSession());
     } catch (err) {
         console.error('[CRM] initSecurity failed:', err);
@@ -2886,6 +2901,7 @@ function clearLeadForm() {
     document.getElementById('leadContent').value = '';
     document.getElementById('leadInterest').value = '';
     document.getElementById('leadStatus').value = 'Novo';
+    document.getElementById('leadScheduledAt').value = '';
     document.getElementById('leadConversationStatus').value = '';
     document.getElementById('leadClassification').value = '';
     document.getElementById('leadNotes').value = '';
@@ -2912,6 +2928,7 @@ function saveLead() {
         content: document.getElementById('leadContent').value.trim(),
         interest: document.getElementById('leadInterest').value.trim(),
         status: document.getElementById('leadStatus').value,
+        scheduledAt: document.getElementById('leadScheduledAt').value || null,
         conversationStatus: document.getElementById('leadConversationStatus').value,
         classification: document.getElementById('leadClassification').value,
         notes: document.getElementById('leadNotes').value.trim(),
@@ -2967,9 +2984,137 @@ function displayLeads() {
 
     syncLeadSourceFilterOptions();
 
+    renderLeadCalendar();
+
     if (leadsViewMode === 'funnel') {
         renderLeadsFunnel(filtered);
     }
+}
+
+const leadCalendarState = {
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+    selectedDay: null
+};
+
+function getLeadEvents() {
+    return (dataManager.leads || []).filter(l => l.scheduledAt).map(l => ({
+        id: l.id,
+        name: l.name || '(sem nome)',
+        campaign: l.campaign || '(sem campanha)',
+        date: l.scheduledAt,
+        status: l.status || 'Novo'
+    }));
+}
+
+function renderLeadCalendar() {
+    const panel = document.getElementById('leadCalendarPanel');
+    if (!panel) return;
+
+    const header = document.getElementById('leadCalendarHeader');
+    const grid = document.getElementById('leadCalendarGrid');
+    const eventsContainer = document.getElementById('leadCalendarDayEvents');
+    if (!header || !grid || !eventsContainer) return;
+
+    const monthNames = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+
+    const { year, month, selectedDay } = leadCalendarState;
+    header.textContent = `${monthNames[month]} ${year}`;
+
+    const firstDay = new Date(year, month, 1);
+    const startDay = (firstDay.getDay() + 6) % 7; // Monday-first
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    const events = getLeadEvents();
+    const eventsByDate = new Map();
+    events.forEach(e => {
+        if (!e.date) return;
+        const d = e.date.slice(0, 10);
+        if (!eventsByDate.has(d)) eventsByDate.set(d, []);
+        eventsByDate.get(d).push(e);
+    });
+
+    grid.innerHTML = '';
+    ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].forEach(d => {
+        const dayEl = document.createElement('div');
+        dayEl.style.fontWeight = 'bold';
+        dayEl.style.textAlign = 'center';
+        dayEl.textContent = d;
+        grid.appendChild(dayEl);
+    });
+
+    const totalCells = 42;
+    for (let i = 0; i < totalCells; i++) {
+        const cell = document.createElement('div');
+        cell.style.border = '1px solid #ddd';
+        cell.style.minHeight = '60px';
+        cell.style.padding = '4px';
+        cell.style.fontSize = '12px';
+        cell.style.borderRadius = '4px';
+        cell.style.background = '#fff';
+
+        const dayNumber = i - startDay + 1;
+        if (i >= startDay && dayNumber <= daysInMonth) {
+            const isoDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
+            cell.innerHTML = `<div style="font-weight:600; margin-bottom:4px;">${dayNumber}</div>`;
+            const dayEvents = eventsByDate.get(isoDate) || [];
+            if (dayEvents.length) {
+                const badge = document.createElement('div');
+                badge.textContent = `${dayEvents.length} agend.`;
+                badge.style.fontSize = '11px';
+                badge.style.background = '#2b7cff';
+                badge.style.color = '#fff';
+                badge.style.borderRadius = '4px';
+                badge.style.padding = '2px 4px';
+                badge.style.display = 'inline-block';
+                cell.appendChild(badge);
+            }
+            cell.style.cursor = 'pointer';
+            if (selectedDay === isoDate) {
+                cell.style.boxShadow = 'inset 0 0 0 2px #2b7cff';
+            }
+            cell.addEventListener('click', () => {
+                leadCalendarState.selectedDay = isoDate;
+                renderLeadCalendar();
+            });
+        } else {
+            cell.style.color = '#aaa';
+            let dayText = '';
+            if (i < startDay) {
+                dayText = String(prevMonthDays - (startDay - i - 1));
+            } else {
+                dayText = String(i - startDay - daysInMonth + 1);
+            }
+            cell.innerHTML = `<div style="font-size:11px;">${dayText}</div>`;
+        }
+
+        grid.appendChild(cell);
+    }
+
+    const selectedDate = leadCalendarState.selectedDay || `${year}-${String(month + 1).padStart(2, '0')}-01`;
+    const selectedEvents = eventsByDate.get(selectedDate) || [];
+    eventsContainer.innerHTML = `<h4 style="margin:0 0 6px 0;">Eventos em ${selectedDate}</h4>`;
+    if (!selectedEvents.length) {
+        eventsContainer.innerHTML += '<div style="font-size:12px; color:#666;">Nenhuma campanha agendada.</div>';
+    } else {
+        eventsContainer.innerHTML += selectedEvents.map(e => `<div style="margin-bottom:4px; border-left:3px solid #2b7cff; padding-left:8px;"><strong>${waEscapeHtml(e.name)}</strong> — ${waEscapeHtml(e.campaign)} <span style="font-size:11px;color:#444;">(${waEscapeHtml(e.status)})</span></div>`).join('');
+    }
+}
+
+function changeLeadCalendarMonth(delta) {
+    const d = new Date(leadCalendarState.year, leadCalendarState.month + delta, 1);
+    leadCalendarState.year = d.getFullYear();
+    leadCalendarState.month = d.getMonth();
+    renderLeadCalendar();
+}
+
+function changeLeadCalendarYear(delta) {
+    leadCalendarState.year += delta;
+    renderLeadCalendar();
 }
 
 function editLead(id) {
@@ -2983,6 +3128,7 @@ function editLead(id) {
     document.getElementById('leadContent').value = lead.content || '';
     document.getElementById('leadInterest').value = lead.interest || '';
     document.getElementById('leadStatus').value = lead.status || 'Novo';
+    document.getElementById('leadScheduledAt').value = lead.scheduledAt || '';
     document.getElementById('leadConversationStatus').value = lead.conversationStatus || '';
     document.getElementById('leadClassification').value = lead.classification || '';
     document.getElementById('leadNotes').value = lead.notes || '';
@@ -3864,12 +4010,5 @@ function loadProductCategories() {
     filter.innerHTML = '<option>Todas as categorias</option>' + dataManager.categories.products.map(c => `<option>${c.name}</option>`).join('');
 }
 
-// Event listeners
-document.getElementById('customFieldType')?.addEventListener('change', toggleCustomFieldOptions);
-document.addEventListener('change', function(e) {
-    if(['budgetDiscount', 'budgetTaxes'].includes(e.target.id)) {
-        calculateBudgetTotal();
-    }
-});
-
+// Event listeners are initialized during window load by initAppEventListeners().
 // Bootstrapping is handled by initSecurity on window load.
