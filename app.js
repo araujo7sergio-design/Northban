@@ -13,6 +13,28 @@ let googleAuthInitialized = false;
 const APP_LOCALE = 'pt-BR';
 let lastCalculatedBudgetTotals = { subtotal: 0, discountAmount: 0, taxesAmount: 0, total: 0 };
 
+const LOADING_OVERLAY_ID = 'loadingOverlay';
+const LOADING_OVERLAY_MESSAGE_ID = 'loadingOverlayMessage';
+
+function showLoadingOverlay(message = 'Carregando...') {
+    const overlay = document.getElementById(LOADING_OVERLAY_ID);
+    if (!overlay) return;
+
+    const msg = document.getElementById(LOADING_OVERLAY_MESSAGE_ID);
+    if (msg) msg.textContent = message;
+
+    overlay.classList.add('is-visible');
+    overlay.setAttribute('aria-hidden', 'false');
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById(LOADING_OVERLAY_ID);
+    if (!overlay) return;
+
+    overlay.classList.remove('is-visible');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
 const STATUS_MAP = {
     Draft: 'Rascunho',
     Sent: 'Enviado',
@@ -1073,23 +1095,51 @@ function showLogin() {
 }
 
 function loadUsers() {
-    return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY_USERS) || '[]');
+    try {
+        const raw = localStorage.getItem(AUTH_STORAGE_KEY_USERS);
+        const parsed = JSON.parse(raw || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
 }
 
 function saveUsers(users) {
-    localStorage.setItem(AUTH_STORAGE_KEY_USERS, JSON.stringify(users));
+    localStorage.setItem(AUTH_STORAGE_KEY_USERS, JSON.stringify(Array.isArray(users) ? users : []));
 }
 
 function getSession() {
-    return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY_SESSION) || 'null');
+    try {
+        return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY_SESSION) || 'null');
+    } catch {
+        return null;
+    }
 }
 
 function setSession(session) {
-    localStorage.setItem(AUTH_STORAGE_KEY_SESSION, JSON.stringify(session));
+    const safe = {
+        sessionId: `sess_${Math.random().toString(36).slice(2)}_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        ...session
+    };
+    localStorage.setItem(AUTH_STORAGE_KEY_SESSION, JSON.stringify(safe));
 }
 
 function clearSession() {
     localStorage.removeItem(AUTH_STORAGE_KEY_SESSION);
+}
+
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPassword(password) {
+    return typeof password === 'string' && password.length >= 6;
+}
+
+function sanitizeInput(value) {
+    return String(value || '').replace(/[<>"'`\/]/g, '');
 }
 
 async function sha256Hex(text) {
@@ -1117,10 +1167,19 @@ async function verifyPassword(password, stored) {
 }
 
 function enterApp() {
+    showLoadingOverlay('Carregando CRM...');
     document.getElementById('loginContainer').style.display = 'none';
     document.getElementById('appContainer').style.display = 'flex';
-    dataManager.loadData();
-    initializeApp();
+
+    // Defer heavy initialization to allow the overlay to paint.
+    requestAnimationFrame(() => {
+        try {
+            dataManager.loadData();
+            initializeApp();
+        } finally {
+            hideLoadingOverlay();
+        }
+    });
 }
 
 function leaveApp() {
@@ -1141,14 +1200,49 @@ function leaveApp() {
     if (signupPassword) signupPassword.value = '';
 }
 
+const AUTH_MAX_FAILED_ATTEMPTS = 5;
+const AUTH_LOCK_MINUTES = 15;
+
+function generateLockKey(email) {
+    return `crm_lock_${email}`;
+}
+
+function getLockInfo(email) {
+    try {
+        return JSON.parse(localStorage.getItem(generateLockKey(email)) || 'null');
+    } catch {
+        return null;
+    }
+}
+
+function setLockInfo(email, info) {
+    localStorage.setItem(generateLockKey(email), JSON.stringify(info));
+}
+
+function clearLockInfo(email) {
+    localStorage.removeItem(generateLockKey(email));
+}
+
+function isLockedOut(email) {
+    const info = getLockInfo(email);
+    if (!info || !info.lockedAt) return false;
+    const lockedAt = new Date(info.lockedAt).getTime();
+    const expiresAt = lockedAt + AUTH_LOCK_MINUTES * 60 * 1000;
+    if (Date.now() > expiresAt) {
+        clearLockInfo(email);
+        return false;
+    }
+    return true;
+}
+
 async function signup() {
-    const name = document.getElementById('signupName').value.trim();
-    const email = document.getElementById('signupEmail').value.trim().toLowerCase();
+    const name = sanitizeInput(document.getElementById('signupName').value.trim());
+    const email = sanitizeInput(document.getElementById('signupEmail').value.trim().toLowerCase());
     const password = document.getElementById('signupPassword').value;
 
     if (!name) return alert('Informe seu nome.');
-    if (!email) return alert('Informe seu email.');
-    if (!password || password.length < 6) return alert('A senha deve ter pelo menos 6 caracteres.');
+    if (!email || !isValidEmail(email)) return alert('Informe um email valido.');
+    if (!isValidPassword(password)) return alert('Senha fraca: use 6+ caracteres.');
 
     const users = loadUsers();
     const existing = users.find(u => u.email === email);
@@ -1156,7 +1250,7 @@ async function signup() {
 
     const passwordHash = await hashPassword(password);
     const user = {
-        id: Date.now(),
+        id: `user_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         name,
         email,
         provider: 'local',
@@ -1166,25 +1260,46 @@ async function signup() {
 
     users.push(user);
     saveUsers(users);
+    clearLockInfo(email);
     setSession({ userId: user.id, email: user.email, provider: user.provider, loggedInAt: new Date().toISOString() });
+    console.log('[CRM] signup success', email);
     enterApp();
 }
 
 async function login() {
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const email = sanitizeInput(document.getElementById('loginEmail').value.trim().toLowerCase());
     const password = document.getElementById('loginPassword').value;
 
     if (!email || !password) return alert('Informe email e senha.');
+    if (!isValidEmail(email)) return alert('Email invalido.');
+    if (isLockedOut(email)) {
+        return alert('Conta bloqueada temporariamente devido a tentativas falhas. Tente novamente mais tarde.');
+    }
 
     const users = loadUsers();
     const user = users.find(u => u.email === email);
-    if (!user) return alert('Conta nao encontrada. Crie uma conta.');
-    if (user.provider === 'google') return alert('Esta conta usa Google. Entre com o botao "Entrar com Google".');
+    if (!user) {
+        return alert('Conta nao encontrada. Crie uma conta.');
+    }
+    if (user.provider === 'google') {
+        return alert('Esta conta usa Google. Entre com o botao "Entrar com Google".');
+    }
 
     const ok = await verifyPassword(password, user.passwordHash);
-    if (!ok) return alert('Email ou senha invalidos.');
+    if (!ok) {
+        const info = getLockInfo(email) || { failedAttempts: 0 };
+        info.failedAttempts = (info.failedAttempts || 0) + 1;
+        if (info.failedAttempts >= AUTH_MAX_FAILED_ATTEMPTS) {
+            info.lockedAt = new Date().toISOString();
+        }
+        setLockInfo(email, info);
+        console.warn('[CRM] login failed:', email, 'attempts', info.failedAttempts);
+        return alert('Email ou senha invalidos. Tente novamente.');
+    }
 
+    clearLockInfo(email);
     setSession({ userId: user.id, email: user.email, provider: user.provider, loggedInAt: new Date().toISOString() });
+    console.log('[CRM] login success', email);
     enterApp();
 }
 
@@ -1192,6 +1307,77 @@ function logout() {
     clearSession();
     leaveApp();
 }
+
+const AUTH_SESSION_TIMEOUT_MINUTES = 30;
+let authInactivityTimer = null;
+
+function isSessionValid(session) {
+    if (!session || typeof session !== 'object') return false;
+    if (!session.userId || !session.email) return false;
+    if (!session.expiresAt) return false;
+    const expires = Date.parse(session.expiresAt);
+    if (Number.isNaN(expires)) return false;
+    return Date.now() < expires;
+}
+
+function refreshSessionTimeout() {
+    const session = getSession();
+    if (!isSessionValid(session)) return;
+    const newExpire = new Date(Date.now() + AUTH_SESSION_TIMEOUT_MINUTES * 60 * 1000).toISOString();
+    setSession({ ...session, expiresAt: newExpire });
+}
+
+function scheduleAutoLogout() {
+    if (authInactivityTimer) clearTimeout(authInactivityTimer);
+    authInactivityTimer = setTimeout(() => {
+        alert('Sessão expirada por inatividade. Faça login novamente.');
+        logout();
+    }, AUTH_SESSION_TIMEOUT_MINUTES * 60 * 1000);
+}
+
+function resetAutoLogout() {
+    refreshSessionTimeout();
+    scheduleAutoLogout();
+}
+
+function enforceSecureContext() {
+    if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && !window.location.hostname.startsWith('127.')) {
+        const login = document.getElementById('loginContainer');
+        if (login) login.innerHTML = '<div style="padding:24px;background:#fff;color:#000;border-radius:8px;max-width:560px;margin:40px auto;font-family:inherit;">Conexão não segura detectada. Use HTTPS para acessar este sistema com segurança.</div>';
+        const app = document.getElementById('appContainer');
+        if (app) app.style.display = 'none';
+        return false;
+    }
+    return true;
+}
+
+function initSecurity() {
+    enforceSecureContext();
+
+    document.addEventListener('mousemove', resetAutoLogout);
+    document.addEventListener('keydown', resetAutoLogout);
+    document.addEventListener('click', resetAutoLogout);
+    document.addEventListener('touchstart', resetAutoLogout);
+
+    const session = getSession();
+    if (isSessionValid(session)) {
+        enterApp();
+        refreshSessionTimeout();
+        scheduleAutoLogout();
+    } else {
+        clearSession();
+        leaveApp();
+    }
+}
+
+window.addEventListener('load', () => {
+    try {
+        initSecurity();
+        console.log('[CRM] Security initialized. Session:', getSession());
+    } catch (err) {
+        console.error('[CRM] initSecurity failed:', err);
+    }
+});
 
 function decodeJwtPayload(token) {
     try {
@@ -1229,6 +1415,10 @@ function ensureGoogleAuth() {
 }
 
 function loginWithGoogle() {
+    if (!GOOGLE_CLIENT_ID) {
+        alert('Entrar com Google não está configurado. Defina GOOGLE_CLIENT_ID em app.js.');
+        return;
+    }
     if (!ensureGoogleAuth()) return;
     google.accounts.id.prompt();
 }
@@ -3682,20 +3872,4 @@ document.addEventListener('change', function(e) {
     }
 });
 
-(function bootstrapAuth() {
-    const session = getSession();
-    if (!session) {
-        leaveApp();
-        return;
-    }
-
-    const users = loadUsers();
-    const user = users.find(u => u.id === session.userId && u.email === session.email);
-    if (!user) {
-        clearSession();
-        leaveApp();
-        return;
-    }
-
-    enterApp();
-})();
+// Bootstrapping is handled by initSecurity on window load.

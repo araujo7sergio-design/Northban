@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://accounts.google.com; frame-ancestors 'none'; base-uri 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>CRM Modular</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,6 +14,16 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
+        <div class="loading-card" role="status" aria-live="polite" aria-busy="true">
+            <div class="spinner" aria-hidden="true">
+                <div class="spinner1"></div>
+            </div>
+            <div id="loadingOverlayMessage" class="loading-message">Carregando...</div>
+        </div>
+    </div>
+
     <div id="loginContainer" class="login-container">
         <div class="login-box">
             <!-- Login view -->
@@ -563,8 +577,8 @@
                         <p><strong>Total:</strong> <span id="budgetTotal">0.00</span></p>
                     </div>
                     <button class="btn" onclick="saveBudget()">Salvar Orçamento</button>
-                    <button class="btn" onclick="duplicateBudget()" style="background: #17a2b8;">Duplicar</button>
-                    <button class="btn" onclick="exportBudgetPDF()" style="background: #28a745;">Exportar PDF</button>
+                    <button class="btn btn-info" onclick="duplicateBudget()">Duplicar</button>
+                    <button class="btn btn-success" onclick="exportBudgetPDF()">Exportar PDF</button>
                     <button class="btn btn-secondary" onclick="closeBudgetForm()">Cancelar</button>
                 </div>
 
